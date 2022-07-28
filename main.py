@@ -2,6 +2,7 @@ import requests
 import json
 
 ROBLOSECURITY = ""
+GROUPURL = "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100"
 
 with open("Settings.txt") as f: # Read settings from "Settings.txt"
     for line in f:
@@ -30,9 +31,18 @@ if __name__ == "__main__":
         print(".ROBLOSECURITY Incorrect. Check Settings")
         exit()
     print("Correct! Starting trade bot..")
+
+    page = None
+    pageNum = 0
+
+    def switchPages():
+        if pageNum == 0:
+            page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
+            pageNum =+ 1
+        elif pageNum == 1:
+            GROUPURL =+ "&cursor="+page.get("previousPageCursor")
+            print(GROUPURL)
+            page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
     
-    players = rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100")
-    print(players.text)
-    
-    with open("text.txt", "w") as f:
-        f.write(players.text) 
+    switchPages()
+    print(page)

@@ -25,11 +25,18 @@ def rbx_request(method, url, **kwargs):
 
 if __name__ == "__main__":
 
+    def itemsWanted(itemsString): 
+        for itemId in itemsString.split():
+            rbx_request("GET", "https://catalog.roblox.com/v1/catalog/items/details")
+            #print(rbx_request("GET", "https://catalog.roblox.com/v1/catalog/items/details").text)
+
     print("Checking auth code..")
-    req = rbx_request("GET", "https://trades.roblox.com/v1/trades/Inbound?sortOrder=Asc&limit=10") # Check for incorrect auth code
+    req = rbx_request("POST", "https://trades.roblox.com/v1/trades/Inbound?sortOrder=Asc&limit=10") # Check for incorrect auth code
     if req.status_code != 200:
         print(".ROBLOSECURITY Incorrect. Check Settings")
         exit()
+
+    itemsWanted(input("Enter item id's that you want, each id seperated by whitespace: "))
     print("Correct! Starting trade bot..")
 
     page = None
@@ -48,8 +55,6 @@ if __name__ == "__main__":
             page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
     
     switchPages()
-
-    for player in page.get("data"):
-        isPremium = rbx_request("GET", "https://premiumfeatures.roblox.com/v1/users/"+str(player.get("userId"))+"/validate-membership").text
-        if isPremium == "true":
-            print("gsd")
+    #for player in page.get("data"):
+    #    isPremium = rbx_request("GET", "https://premiumfeatures.roblox.com/v1/users/"+str(player.get("userId"))+"/validate-membership").text
+      #  if isPremium == "true":

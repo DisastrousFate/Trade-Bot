@@ -34,15 +34,22 @@ if __name__ == "__main__":
 
     page = None
     pageNum = 0
+    nextPageCursor = None
 
     def switchPages():
+        global pageNum, page, GROUPURL, nextPageCursor
         if pageNum == 0:
             page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
             pageNum =+ 1
+            nextPageCursor = page.get("nextPageCursor")
         elif pageNum == 1:
-            GROUPURL =+ "&cursor="+page.get("previousPageCursor")
+            GROUPURL = GROUPURL + "&cursor="+page.get("nextPageCursor")
             print(GROUPURL)
             page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
     
     switchPages()
-    print(page)
+
+    for player in page.get("data"):
+        isPremium = rbx_request("GET", "https://premiumfeatures.roblox.com/v1/users/"+str(player.get("userId"))+"/validate-membership").text
+        if isPremium == "true":
+            print("gsd")

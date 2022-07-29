@@ -2,7 +2,6 @@ import requests
 import json
 
 ROBLOSECURITY = ""
-GROUPURL = "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100"
 
 with open("Settings.txt") as f: # Read settings from "Settings.txt"
     for line in f:
@@ -25,18 +24,15 @@ def rbx_request(method, url, **kwargs):
 
 if __name__ == "__main__":
 
-    def itemsWanted(itemsString): 
-        for itemId in itemsString.split():
-            rbx_request("GET", "https://catalog.roblox.com/v1/catalog/items/details")
-            #print(rbx_request("GET", "https://catalog.roblox.com/v1/catalog/items/details").text)
-
     print("Checking auth code..")
-    req = rbx_request("POST", "https://trades.roblox.com/v1/trades/Inbound?sortOrder=Asc&limit=10") # Check for incorrect auth code
+    req = rbx_request("GET", "https://trades.roblox.com/v1/trades/Inbound?sortOrder=Asc&limit=10") # Check for incorrect auth code
     if req.status_code != 200:
         print(".ROBLOSECURITY Incorrect. Check Settings")
         exit()
 
-    itemsWanted(input("Enter item id's that you want, each id seperated by whitespace: "))
+    print("Enter item id's of limiteds you want, each seperated by whitespace: ")
+    itemsWanted = input().split()
+
     print("Correct! Starting trade bot..")
 
     page = None
@@ -44,17 +40,32 @@ if __name__ == "__main__":
     nextPageCursor = None
 
     def switchPages():
-        global pageNum, page, GROUPURL, nextPageCursor
+        global pageNum, page, nextPageCursor
         if pageNum == 0:
             page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
             pageNum =+ 1
             nextPageCursor = page.get("nextPageCursor")
-        elif pageNum == 1:
-            GROUPURL = GROUPURL + "&cursor="+page.get("nextPageCursor")
-            print(GROUPURL)
-            page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
+        else:
+            page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100&"+nextPageCursor).text)
+            pageNum =+ 1
+            nextPageCursor = page.get("nextPageCursor")
     
     switchPages()
-    #for player in page.get("data"):
-    #    isPremium = rbx_request("GET", "https://premiumfeatures.roblox.com/v1/users/"+str(player.get("userId"))+"/validate-membership").text
-      #  if isPremium == "true":
+    for player in page.get("data"):
+        userId = str(player.get("userId"))
+
+        hasAllItems = True
+        for currentItem in itemsWanted:
+            if hasAllItems == True:
+                hasItem = rbx_request("GET", "https://inventory.roblox.com/v1/users/"+userId+"/items/Asset/"+currentItem+"/is-owned")
+                print(hasItem.text)
+                if hasItem.text == "true":
+                    hasAllItems = True
+                else:
+                    hasAllItems = False
+        if hasAllItems == True:
+            print(userId+"Has ITEM!!!")
+
+        isPremium = rbx_request("GET", "https://premiumfeatures.roblox.com/v1/users/"+userId+"/validate-membership").text
+        #if isPremium == "true":
+            

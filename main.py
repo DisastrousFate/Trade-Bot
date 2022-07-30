@@ -2,12 +2,16 @@ import requests
 import json
 
 ROBLOSECURITY = ""
+USERID = ""
 
 with open("Settings.txt") as f: # Read settings from "Settings.txt"
     for line in f:
         s = line.split("=")
         if s[0].strip() == ".ROBLOSECURITY":
             ROBLOSECURITY = s[1].strip()
+        if s[0].strip() == "UserId":
+            USERID = s[1].strip()
+            print(USERID)
 
 session = requests.session()
 session.cookies[".ROBLOSECURITY"] = ROBLOSECURITY
@@ -33,39 +37,43 @@ if __name__ == "__main__":
     print("Enter item id's of limiteds you want, each seperated by whitespace: ")
     itemsWanted = input().split()
 
+    print("Enter item id's of limiteds to trade, each seperated by whitespace")
+    tradeItems = input().split()
+
     print("Correct! Starting trade bot..")
 
-    page = None
-    pageNum = 0
-    nextPageCursor = None
-
-    def switchPages():
-        global pageNum, page, nextPageCursor
+    def switchPages(itemWanted):
+        pageNum, page, nextPageCursor = 0, None, None
         if pageNum == 0:
-            page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100").text)
+            page = json.loads(rbx_request("GET", "https://inventory.roblox.com/v2/assets/"+itemWanted+"/owners?sortOrder=Desc&limit=100").text)
             pageNum =+ 1
             nextPageCursor = page.get("nextPageCursor")
         else:
-            page = json.loads(rbx_request("GET", "https://groups.roblox.com/v1/groups/650266/roles/21783158/users?sortOrder=Desc&limit=100&"+nextPageCursor).text)
+            page = json.loads(rbx_request("GET", "https://inventory.roblox.com/v2/assets/"+itemWanted+"/owners?sortOrder=Desc&limit=100&"+nextPageCursor).text)
             pageNum =+ 1
             nextPageCursor = page.get("nextPageCursor")
+        return pageNum, page, nextPageCursor
     
-    switchPages()
-    for player in page.get("data"):
-        userId = str(player.get("userId"))
+    for itemWanted in itemsWanted:
+        index = 0
 
-        hasAllItems = True
-        for currentItem in itemsWanted:
-            if hasAllItems == True:
-                hasItem = rbx_request("GET", "https://inventory.roblox.com/v1/users/"+userId+"/items/Asset/"+currentItem+"/is-owned")
-                print(hasItem.text)
-                if hasItem.text == "true":
-                    hasAllItems = True
-                else:
-                    hasAllItems = False
-        if hasAllItems == True:
-            print(userId+"Has ITEM!!!")
+        pageNum, page, nextPageCursor = switchPages(itemWanted)
+        for user in page["data"]:
+            if user["owner"] == "null" or user["owner"] == None: # Check if user has premium
+                continue
 
-        isPremium = rbx_request("GET", "https://premiumfeatures.roblox.com/v1/users/"+userId+"/validate-membership").text
-        #if isPremium == "true":
-            
+        tradereq = rbx_request("POST", "https://trades.roblox.com/v1/trades/send", {
+                "offers": [
+	                {
+			            "userId": 368071412,
+			            "userAssetIds": [10159911699],
+			            "robux": 0,
+		            },
+		            {
+			            "userId": USERID,
+			            "userAssetIds": [tradeItems[0]],
+			            "robux": 0,
+		            },
+	            ],
+            })
+        print(tradereq.text)

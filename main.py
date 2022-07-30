@@ -16,6 +16,8 @@ with open("Settings.txt") as f: # Read settings from "Settings.txt"
 session = requests.session()
 session.cookies[".ROBLOSECURITY"] = ROBLOSECURITY
 
+
+
 def rbx_request(method, url, **kwargs):
     request = session.request(method, url, **kwargs)
     method = method.lower()
@@ -33,6 +35,9 @@ if __name__ == "__main__":
     if req.status_code != 200:
         print(".ROBLOSECURITY Incorrect. Check Settings")
         exit()
+    if "X-CSRF-Token" in req.headers:  # check if token is in response headers
+        print("aa")
+        session.headers["X-CSRF-Token"] = req.headers["X-CSRF-Token"]
 
     print("Enter item id's of limiteds you want, each seperated by whitespace: ")
     itemsWanted = input().split()
@@ -62,7 +67,7 @@ if __name__ == "__main__":
             if user["owner"] == "null" or user["owner"] == None: # Check if user has premium
                 continue
 
-        tradereq = rbx_request("POST", "https://trades.roblox.com/v1/trades/send", {
+        tradereq = session.post(url = "https://trades.roblox.com/v1/trades/send", data = {
                 "offers": [
 	                {
 			            "userId": 368071412,

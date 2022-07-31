@@ -15,6 +15,7 @@ with open("Settings.txt") as f: # Read settings from "Settings.txt"
 
 session = requests.session()
 session.cookies[".ROBLOSECURITY"] = ROBLOSECURITY
+session.headers["Content-Type"] = "application/json"
 
 
 
@@ -35,9 +36,11 @@ if __name__ == "__main__":
     if req.status_code != 200:
         print(".ROBLOSECURITY Incorrect. Check Settings")
         exit()
-    if "X-CSRF-Token" in req.headers:  # check if token is in response headers
+
+    req2 = session.post(url="https://auth.roblox.com/")
+    if "X-CSRF-Token" in req2.headers:  # check if token is in response headers
         print("aa")
-        session.headers["X-CSRF-Token"] = req.headers["X-CSRF-Token"]
+        session.headers["X-CSRF-Token"] = req2.headers["X-CSRF-Token"]
 
     print("Enter item id's of limiteds you want, each seperated by whitespace: ")
     itemsWanted = input().split()
@@ -58,6 +61,25 @@ if __name__ == "__main__":
             pageNum =+ 1
             nextPageCursor = page.get("nextPageCursor")
         return pageNum, page, nextPageCursor
+
+    def sendTrade(UID, UAID, UID2, UAID2):
+        tradereq = session.post(url = "https://trades.roblox.com/v1/trades/send",
+            data = json.dumps({
+                "offers": [
+	                {
+			            "userId": UID,
+			            "userAssetIds": [UAID],
+			            "robux": 0,
+		            },
+		            {
+			            "userId": UID2,
+			            "userAssetIds": [UAID2],
+			            "robux": 0,
+		            },
+	            ],
+            }),
+            headers = session.headers,
+            cookies = session.cookies)
     
     for itemWanted in itemsWanted:
         index = 0
@@ -66,19 +88,4 @@ if __name__ == "__main__":
         for user in page["data"]:
             if user["owner"] == "null" or user["owner"] == None: # Check if user has premium
                 continue
-
-        tradereq = session.post(url = "https://trades.roblox.com/v1/trades/send", data = {
-                "offers": [
-	                {
-			            "userId": 368071412,
-			            "userAssetIds": [10159911699],
-			            "robux": 0,
-		            },
-		            {
-			            "userId": USERID,
-			            "userAssetIds": [tradeItems[0]],
-			            "robux": 0,
-		            },
-	            ],
-            })
-        print(tradereq.text)
+            

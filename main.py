@@ -2,7 +2,7 @@ import requests
 import json
 
 ROBLOSECURITY = ""
-USERID = ""
+USERID = 0
 
 with open("Settings.txt") as f: # Read settings from "Settings.txt"
     for line in f:
@@ -10,14 +10,11 @@ with open("Settings.txt") as f: # Read settings from "Settings.txt"
         if s[0].strip() == ".ROBLOSECURITY":
             ROBLOSECURITY = s[1].strip()
         if s[0].strip() == "UserId":
-            USERID = s[1].strip()
-            print(USERID)
+            USERID = int(s[1].strip())
 
 session = requests.session()
 session.cookies[".ROBLOSECURITY"] = ROBLOSECURITY
 session.headers["Content-Type"] = "application/json"
-
-
 
 def rbx_request(method, url, **kwargs):
     request = session.request(method, url, **kwargs)
@@ -39,10 +36,9 @@ if __name__ == "__main__":
 
     req2 = session.post(url="https://auth.roblox.com/")
     if "X-CSRF-Token" in req2.headers:  # check if token is in response headers
-        print("aa")
         session.headers["X-CSRF-Token"] = req2.headers["X-CSRF-Token"]
 
-    print("Enter item id's of limiteds you want, each seperated by whitespace: ")
+    print("Enter item id's of limiteds you want, each seperated by whitespace: ")       # Inputs
     itemsWanted = input().split()
 
     print("Enter item id's of limiteds to trade, each seperated by whitespace")
@@ -50,10 +46,10 @@ if __name__ == "__main__":
 
     print("Correct! Starting trade bot..")
 
-    def switchPages(itemWanted):
+    def switchPages(itemWanted):        # Switch inventory pages
         pageNum, page, nextPageCursor = 0, None, None
         if pageNum == 0:
-            page = json.loads(rbx_request("GET", "https://inventory.roblox.com/v2/assets/"+itemWanted+"/owners?sortOrder=Desc&limit=100").text)
+            page = json.loads(rbx_request("GET", "https://inventory.roblox.com/v2/assets/"+itemWanted+"/owners?sortOrder=Desc&limit=10").text)
             pageNum =+ 1
             nextPageCursor = page.get("nextPageCursor")
         else:
@@ -62,7 +58,7 @@ if __name__ == "__main__":
             nextPageCursor = page.get("nextPageCursor")
         return pageNum, page, nextPageCursor
 
-    def sendTrade(UID, UAID, UID2, UAID2):
+    def sendTrade(UID, UAID, UAID2):                          # Send user trade. parameters are user to trade with, and user lgoged in
         tradereq = session.post(url = "https://trades.roblox.com/v1/trades/send",
             data = json.dumps({
                 "offers": [
@@ -72,8 +68,8 @@ if __name__ == "__main__":
 			            "robux": 0,
 		            },
 		            {
-			            "userId": UID2,
-			            "userAssetIds": [UAID2],
+			            "userId": USERID,
+			            "userAssetIds": UAID2,
 			            "robux": 0,
 		            },
 	            ],
@@ -81,6 +77,16 @@ if __name__ == "__main__":
             headers = session.headers,
             cookies = session.cookies)
     
+    # Get UAID of item to trade
+    UAID_list = []
+
+    for item in tradeItems:
+        req = json.loads(rbx_request("GET", "https://inventory.roblox.com/v1/users/"+str(USERID)+"/assets/collectibles?sortOrder=Desc&limit=100").text)
+        for asset in req["data"]:
+            if asset["assetId"] == int(item):
+                UAID_list.insert(len(UAID_list) - 1, int(asset["userAssetId"]))
+    print(UAID_list)
+
     for itemWanted in itemsWanted:
         index = 0
 
@@ -89,3 +95,5 @@ if __name__ == "__main__":
             if user["owner"] == "null" or user["owner"] == None: # Check if user has premium
                 continue
             
+
+#sendTrade(user["owner"]["id"], user["id"], UAID_list) # userId other player : your userId : items wanted 

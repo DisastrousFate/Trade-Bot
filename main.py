@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 
 def main():
 
@@ -33,16 +34,16 @@ def main():
         session.headers["X-CSRF-Token"] = req2.headers["X-CSRF-Token"]
 
     print("Enter asset id's of limiteds to offer, each seperated by whitespace: ")
-    assetOffers = ["6803423284", "6803400584"]
+    assetOffers = input().split()
 
     print("Enter asset id's of limiteds to request, each seperated by whitespace: ")
-    assetRequests = ["398673908", "19027209"]
+    assetRequests = input().split()
 
     print("Starting trade bot..")
 
     # Convert client asset id's to UAID
     clientUAIDs = []
-    clientInv = json.loads(rbx_request("GET", "https://inventory.roblox.com/v1/users/"+str(USERID)+"/assets/collectibles?sortOrder=Desc&limit=10").text)
+    clientInv = json.loads(rbx_request("GET", "https://inventory.roblox.com/v1/users/"+str(USERID)+"/assets/collectibles?sortOrder=Desc&limit=100").text)
     for assetoffer in assetOffers:
         for asset in clientInv["data"]:
             if asset["assetId"] == int(assetoffer):
@@ -50,16 +51,33 @@ def main():
 
     assetOwners, nextPage = assetOwner_request(assetRequests[0]) ## LOOP THROUGH PLAYERS WITH FIRST LIMITED
     for user in assetOwners["data"]:        ## LOOP THROUGH USERS
-            # Check if user has premium
-            if user["owner"] == "null" or user["owner"] == None: 
-                continue
-            
-            # Search through user inventory
-            userInv = json.loads(rbx_request("GET", "https://inventory.roblox.com/v1/users/"+str(user["owner"]["id"])+"/assets/collectibles?sortOrder=Desc&limit=10").text)
+        # Check if user has premium
+        if user["owner"] == "null" or user["owner"] == None: 
+            continue
+        # Check if you can trade with them
+        if json.loads(rbx_request("GET", "https://trades.roblox.com/v1/users/"+ str(user["owner"]["id"]) +"/can-trade-with").text)["canTrade"] == False:
+            continue
+        
+        # Search through user inventory
+        userInv = json.loads(rbx_request("GET", "https://inventory.roblox.com/v1/users/"+str(user["owner"]["id"])+"/assets/collectibles?sortOrder=Desc&limit=100").text)
+        numOfAssets = 0
+
+        if len(assetRequests) != 1:
             for assetRequest in assetRequests[1:]:
                 for userDict in userInv["data"]:
                     if int(assetRequest) == userDict["assetId"]:
-                        print(user["owner"]["id"])
+                        numOfAssets += 1
+                        if numOfAssets == len(assetRequests) - 1:
+                            print("trade here!")
+                            # initiate trade
+        else:
+            for userDict in userInv["data"]:
+                if int(assetRequests[0]) == userDict["assetId"]:
+                    time.sleep(1)
+                    print(userDict["userAssetId"])
+                    trade_send(USERID, clientUAIDs, user["owner"]["id"], [userDict["userAssetId"]])
+                    break
+
 
 def rbx_request(method, url, **kwargs):
 
@@ -80,5 +98,29 @@ def assetOwner_request(assetId, **page):
     
     return req, nextPage
 
+def trade_send(clientId, offerUAID, userId, requestUAID):
+
+    print("Target: " + str(userId) + "  Sending trade..")
+    tradereq = session.post(
+        url="https://trades.roblox.com/v1/trades/send",
+        data=json.dumps({
+            "offers": [
+                {
+                    "userId": userId,
+                    "userAssetIds": requestUAID,
+                    "robux": 0
+                },
+                {
+                    "userId": clientId,
+                    "userAssetIds": offerUAID,
+                    "robux": 0
+                }
+            ]
+        })
+    )
+    if tradereq.status_code == 200:
+        print("Trade successful.  Trade Id: " + tradereq.text)
+    else:
+        print("ERROR!!!    " + str(tradereq.text))
 if __name__ == "__main__":
     main()

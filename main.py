@@ -3,7 +3,7 @@ import json
 import time
 import ratelimit
 
-from ordered_set import OrderedSet
+#from ordered_set import OrderedSet
 
 def main():
     ROBLOSECURITY = ""
@@ -107,6 +107,7 @@ def main():
                 time.sleep(10)
 
         counter = 1
+        
 #//////////////////////////////////////////////////////////////////////////////////////////////////////////#
 @ratelimit.rate_limited(30, 10)  # allow the function to be called 30 times
 def rbx_request(method, url, **kwargs):
@@ -136,28 +137,27 @@ def asset_owner_request(asset_ids, next_page):
 
     # Check for same userid's and remove
 
-    asset_owners_ordered = OrderedSet([]) # Is a set
+    #asset_owners_ordered = OrderedSet([]) # Is a set
     asset_owners_done = {}
     for user in asset_owners["data"]:
         if user.get("owner"): 
-            asset_owners_ordered.add(user['owner']['id'])
-            if user["owner"]["id"] in asset_owners_done:
-                asset_owners_done[user["owner"]["id"]] =+ 1
+            if asset_owners_done.get(user["owner"]["id"]):
+                asset_owners_done[user["owner"]["id"]] = asset_owners_done[user["owner"]["id"]] + 1
             else:
                 asset_owners_done[user["owner"]["id"]] =  1
-
+    print(asset_owners_done)
     for userId, amount in asset_owners_done.items():
-        count = 0
-        for user in asset_owners["data"]:
-            if user.get("owner"):
-                count += 1
-                if amount > 1:
-                    indices = [i for i, item in enumerate(asset_owners["data"]) if item["owner"]["id"] == userId]
-                    print(indices)
-                    
-                    #asset_owners["data"].pop()
+            
+        if user.get("owner"):
+            if amount > 1:
+                print("Over 1")
+                for i, user in enumerate(asset_owners["data"]):
+                    if user.get("owner"):
+                        if user["owner"]["id"] == userId:
+                            asset_owners["data"].pop(i)
 
-    aasdasddsd()
+    print(asset_owners)
+    asdgygads()
             
 
     

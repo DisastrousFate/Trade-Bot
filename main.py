@@ -3,8 +3,6 @@ import json
 import time
 import ratelimit
 
-#from ordered_set import OrderedSet
-
 def main():
     ROBLOSECURITY = ""
     USERID = 0
@@ -136,8 +134,6 @@ def asset_owner_request(asset_ids, next_page):
         asset_owners = json.loads(rbx_request("GET", f"https://inventory.roblox.com/v2/assets/{asset_ids}/owners?sortOrder=Desc&limit=100&cursor={next_page}").text)
 
     # Check for same userid's and remove
-
-    #asset_owners_ordered = OrderedSet([]) # Is a set
     asset_owners_done = {}
     for user in asset_owners["data"]:
         if user.get("owner"): 
@@ -145,7 +141,7 @@ def asset_owner_request(asset_ids, next_page):
                 asset_owners_done[user["owner"]["id"]] = asset_owners_done[user["owner"]["id"]] + 1
             else:
                 asset_owners_done[user["owner"]["id"]] =  1
-    print(asset_owners_done)
+
     for userId, amount in asset_owners_done.items():
             
         if user.get("owner"):
@@ -154,23 +150,8 @@ def asset_owner_request(asset_ids, next_page):
                 for i, user in enumerate(asset_owners["data"]):
                     if user.get("owner"):
                         if user["owner"]["id"] == userId:
-                            asset_owners["data"].pop(i)
-
-    print(asset_owners)
-    asdgygads()
-            
-
-    
-    """
-    for user in asset_owners_ordered:
-        count = 0
-        for user2 in asset_owners["data"]:
-            count += 1
-            if user2.get("owner"): 
-                if user2["owner"]["id"] != user:
-                    print(user2["owner"]["id"])
-                    asset_owners["data"].pop(count - 1)
-    """
+                            for x in range(amount - 1):
+                                asset_owners["data"].pop(i)
 
     if "nextPageCursor" in asset_owners:
         next_page = asset_owners["nextPageCursor"]

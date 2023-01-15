@@ -1,7 +1,7 @@
 import requests
 import json
 import time
-import ratelimit
+from ratelimit import limits, RateLimitException, sleep_and_retry
 
 def main():
     ROBLOSECURITY = ""
@@ -69,12 +69,12 @@ def main():
 
             # Search through user inventory
             user_inv = json.loads(rbx_request("GET", "https://inventory.roblox.com/v1/users/"+str(user["owner"]["id"])+"/assets/collectibles?sortOrder=Desc&limit=100").text)
-
+            print(user_inv)
             item_counts = {}
             allItems = {}
             hasAllItems = False
             # Loop through user's inventory and count each item
-            print(user_inv["data"])
+
             for item in user_inv["data"]:
                 
                 # Check if user has all requested items
@@ -107,7 +107,8 @@ def main():
         counter = 1
         
 #//////////////////////////////////////////////////////////////////////////////////////////////////////////#
-@ratelimit.rate_limited(30, 10)  # allow the function to be called 30 times
+@sleep_and_retry
+@limits(30, 10)  # allow the function to be called 30 times
 def rbx_request(method, url, **kwargs):
     request = session.request(method, url, **kwargs) 
     method = method.lower()
@@ -120,6 +121,7 @@ def rbx_request(method, url, **kwargs):
     return request
 
 def asset_owner_request(asset_ids, next_page):
+    print(next_page)
     """Get a list of users who own a specific asset.
 
     Parameters:
@@ -132,7 +134,7 @@ def asset_owner_request(asset_ids, next_page):
         asset_owners = json.loads(rbx_request("GET", f"https://inventory.roblox.com/v2/assets/{asset_ids}/owners?sortOrder=Desc&limit=100").text)
     else:
         asset_owners = json.loads(rbx_request("GET", f"https://inventory.roblox.com/v2/assets/{asset_ids}/owners?sortOrder=Desc&limit=100&cursor={next_page}").text)
-
+    print(asset_owners)
     # Check for same userid's and remove
     asset_owners_done = {}
     for user in asset_owners["data"]:
@@ -141,17 +143,21 @@ def asset_owner_request(asset_ids, next_page):
                 asset_owners_done[user["owner"]["id"]] = asset_owners_done[user["owner"]["id"]] + 1
             else:
                 asset_owners_done[user["owner"]["id"]] =  1
+    print(asset_owners_done)
 
-    for userId, amount in asset_owners_done.items():
-            
+    for userId, amount in asset_owners_done.items():       
         if user.get("owner"):
             if amount > 1:
-                print("Over 1")
                 for i, user in enumerate(asset_owners["data"]):
                     if user.get("owner"):
                         if user["owner"]["id"] == userId:
                             for x in range(amount - 1):
-                                asset_owners["data"].pop(i)
+
+                                print("LENGTH: " + str(i))
+                                print("LENGTH: " + str(len(asset_owners["data"])))
+                                if int(i) < int(len(asset_owners["data"])):
+                                    print(asset_owners["data"][i])
+                                    asset_owners["data"].pop(i)
 
     if "nextPageCursor" in asset_owners:
         next_page = asset_owners["nextPageCursor"]
@@ -160,7 +166,12 @@ def asset_owner_request(asset_ids, next_page):
 
     return asset_owners, next_page
 
+global start_time
+global end_time
+
 def timeTaken(start):
+    global start_time
+    global end_time
     timeList = []
     if start == True:
         start_time = time.perf_counter()
